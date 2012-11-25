@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from argparse import ArgumentParser
 import os, sys, math, time, datetime
 import xmp
@@ -228,8 +229,4 @@ if __name__ == '__main__':
         set_for_all_xmps(var, statics[var])
         
     write_xmps(all_xmps, outfolder)
-
-
-
-
 

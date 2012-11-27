@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# usage: $ ./xml-xmp.py -i test-pics/img-20121124.xmp
+# Currently this script will increase the Exposure2012 level by 1
 
 import getopt, sys
 import datetime
@@ -16,6 +18,8 @@ for o, a in opts:
 
 tree = ET.parse(infile)
 
+
+ET.register_namespace("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 ET.register_namespace("aux", "http://ns.adobe.com/exif/1.0/aux/")
 ET.register_namespace("crs", "http://ns.adobe.com/camera-raw-settings/1.0/")
 ET.register_namespace("x", "adobe:ns:meta/")
@@ -28,6 +32,22 @@ ET.register_namespace("xmp", "http://ns.adobe.com/xap/1.0/")
 ET.register_namespace("xmpMM", "http://ns.adobe.com/xap/1.0/mm/")
 ET.register_namespace("stEvt", "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#")
 
+# XMP Field list: http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/XMP.html
+
 root = tree.getroot()
-root[0][1][2].text = '1'
-tree.write('output.xml')
+rdfElement = root.find("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF")
+descriptionsElements = rdfElement.findall("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description")
+# TODO: the values can be either child elements or attributes on the Description
+# element. So, we need to try a get AND and find. One of them should work.
+val = descriptionsElements[0].get("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012")
+if (val == None):
+  valElement = descriptionsElements[1].find("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012")
+  print "find:", valElement.text
+  # Increment Exposure level by 1
+  valElement.text = str(float(valElement.text)+1)
+else:
+  print "get:", val
+  # Increment Exposure level by 1
+  descriptionsElements[0].set("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012", str(float(val)+1))
+
+tree.write(infile)

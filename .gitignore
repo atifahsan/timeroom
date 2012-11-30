@@ -1,2 +1,11 @@
 *.pyc
+*.log
 
+# LightRoom Files
+*.lrcat
+*.lrdata
+*.lrtemplate
+
+# RAW Files
+*.CR2
+*.xmp

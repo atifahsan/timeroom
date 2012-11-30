@@ -3,8 +3,13 @@
 # Currently this script will increase the Exposure2012 level by 1
 
 import getopt, sys
-import datetime
+import datetime, logging
 import xml.etree.ElementTree as ET
+
+# Create logger
+LOG_FILENAME = 'timeroom.log'
+logger = logging.getLogger("timeroom")
+logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
 opts, args = getopt.getopt(sys.argv[1:], "i:")
 infile = None
@@ -32,8 +37,6 @@ ET.register_namespace("xmp", "http://ns.adobe.com/xap/1.0/")
 ET.register_namespace("xmpMM", "http://ns.adobe.com/xap/1.0/mm/")
 ET.register_namespace("stEvt", "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#")
 
-# XMP Field list: http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/XMP.html
-
 root = tree.getroot()
 rdfElement = root.find("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF")
 descriptionsElements = rdfElement.findall("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description")
@@ -42,11 +45,11 @@ descriptionsElements = rdfElement.findall("{http://www.w3.org/1999/02/22-rdf-syn
 val = descriptionsElements[0].get("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012")
 if (val == None):
   valElement = descriptionsElements[1].find("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012")
-  print "find:", valElement.text
+  logger.info("element value = %s", valElement.text)
   # Increment Exposure level by 1
   valElement.text = str(float(valElement.text)+1)
 else:
-  print "get:", val
+  logger.info("attribute value = %s", val)
   # Increment Exposure level by 1
   descriptionsElements[0].set("{http://ns.adobe.com/camera-raw-settings/1.0/}Exposure2012", str(float(val)+1))
 

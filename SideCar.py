@@ -67,11 +67,13 @@ class SideCar:
     if (element == None):
       parentElement = self.root.find(parentXPath)
       val = parentElement.get(keyXPath)
-      logger.debug("reading attribute %s = %s", key, val)
-      return self.formatGet(key, val)
+      r = self.formatGet(key, val)
+      logger.debug("reading attribute %s = %s", key, r)
+      return r
     else:
-      logger.debug("reading element %s = %s", key, element.text)
-      return self.formatGet(key, element.text)
+      r = self.formatGet(key, element.text)
+      logger.debug("reading element %s = %s", key, r)
+      return r
 
   def set(self, key, value):
     # save value (preserve format with element or attr)

@@ -27,11 +27,11 @@ CRS_TAGS = {
   'CameraProfileDigest': (DataType.STRING, None),
   'ChromaticAberrationB': (DataType.INT, None),
   'ChromaticAberrationR': (DataType.INT, None),
-  'Clarity': (DataType.INT, None),
+  # OLD PROCESS 'Clarity': (DataType.INT, None),
   'Clarity2012': (DataType.INT, None),
   'ColorNoiseReduction': (DataType.INT, None),
   'ColorNoiseReductionDetail': (DataType.INT, None),
-  'Contrast': (DataType.INT, 0),
+  # OLD PROCESS 'Contrast': (DataType.INT, 0),
   'Contrast2012': (DataType.SINT, 0),
   'Converter': (DataType.STRING, None),
   'ConvertToGrayscale': (DataType.BOOL, None),
@@ -50,7 +50,7 @@ CRS_TAGS = {
   #2 = cm
   #CropWidth real
   'Defringe': (DataType.INT, None),
-  'Exposure': (DataType.REAL, 0),
+  # OLD PROCESS 'Exposure': (DataType.REAL, 0),
   'Exposure2012': (DataType.REAL, 0),
   'FillLight': (DataType.INT, None),
   #GradientBasedCorrections  struct+ --> Correction Struct
@@ -92,7 +92,7 @@ CRS_TAGS = {
   'GreenSaturation': (DataType.INT, None),
   'HasCrop': (DataType.BOOL, None),
   'HasSettings': (DataType.BOOL, None),
-  'HighlightRecovery': (DataType.INT, None),
+  # OLD PROCESS 'HighlightRecovery': (DataType.INT, None),
   'Highlights2012': (DataType.INT, None),
   'HueAdjustmentAqua': (DataType.INT, None),
   'HueAdjustmentBlue': (DataType.INT, None),
@@ -181,7 +181,7 @@ CRS_TAGS = {
   'SaturationAdjustmentPurple': (DataType.INT, None),
   'SaturationAdjustmentRed': (DataType.INT, None),
   'SaturationAdjustmentYellow': (DataType.INT, None),
-  'Shadows': (DataType.INT, None),
+  # OLD PROCESS 'Shadows': (DataType.INT, None),
   'Shadows2012': (DataType.INT, None),
   'ShadowTint': (DataType.INT, None),
   'SharpenDetail': (DataType.INT, None),
@@ -196,11 +196,11 @@ CRS_TAGS = {
   'SplitToningShadowSaturation': (DataType.INT, None),
   'ColorTemperature': (DataType.INT, None),
   'Temperature': (DataType.INT, 5500),
-  'Tint': (DataType.INT, 6),
-  'ToneCurve': (DataType.STRING, None),
-  'ToneCurveBlue': (DataType.STRING, None),
-  'ToneCurveGreen': (DataType.STRING, None),
-  'ToneCurveName': (DataType.STRING, None),  #'Custom' = Custom    'Linear' = Linear
+  'Tint': (DataType.SINT, 6),
+  # OLD PROCESS 'ToneCurve': (DataType.STRING, None),
+  # OLD PROCESS 'ToneCurveBlue': (DataType.STRING, None),
+  # OLD PROCESS 'ToneCurveGreen': (DataType.STRING, None),
+  # OLD PROCESS 'ToneCurveName': (DataType.STRING, None),  #'Custom' = Custom    'Linear' = Linear
   #'Medium Contrast' = Medium Contrast
   #'Strong Contrast' = Strong Contrast
   'ToneCurveName2012': (DataType.STRING, None),

@@ -12,7 +12,7 @@ def noEasing(t, b, c, d):
 # Create logger
 LOG_FILENAME = 'timeroom.log'
 logger = logging.getLogger("TimeRoom")
-logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
+logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Define arguments
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -44,8 +44,8 @@ for key in keys:
   ##### tween (convert to method)
   orig = sidecars[0].get(key)
   dest = sidecars[ len(sidecars) - 1 ].get(key)
-  if (orig == dest or dest == None or orig == None):
-    logger.debug("skipping %s because keyframe is None or match", key)
+  if (dest == None or orig == None):
+    logger.debug("skipping %s because a keyframe is None", key)
     continue
   size = float(len(sidecars)-1)
 

@@ -27,40 +27,49 @@ class SideCar:
   """Class to represent an xmp RAW sidecar file"""
   filename = None
   data = {}
+  root = None
 
   def __init__(self, filename):
     self.filename = filename
-
-    # open file
     self.tree = ET.parse(filename)
+    self.root = self.tree.getroot()
     return
 
   def get(self, key):
-    root = self.tree.getroot()
-    rdfElement = root.find("")
+    parentXPath, keyXPath, fullXPath = self._getPaths(key)
 
-    parentXPath = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF/{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description"
-    keyXPath = '{{http://ns.adobe.com/camera-raw-settings/1.0/}}{0}'.format(key)
-    fullXPath = "{0}/{1}".format(parentXPath, keyXPath)
-
-    element = root.find(fullXPath)
+    element = self.root.find(fullXPath)
     if (element == None):
-      parentElement = root.find(parentXPath)
+      parentElement = self.root.find(parentXPath)
       val = parentElement.get(keyXPath)
-      logger.info("attribute value = %s", val)
-      return val
+      logger.info("reading attribute %s = %s", key, val)
+      return float(val)
     else:
-      logger.info("element value = %s", element.text)
-      return element.text
+      logger.info("reading element %s = %s", key, element.text)
+      return float(element.text)
 
   def set(self, key, value):
     # save value (preserve format with element or attr)
-    return
+    parentXPath, keyXPath, fullXPath = self._getPaths(key)
+
+    element = self.root.find(fullXPath)
+    if (element == None):
+      parentElement = self.root.find(parentXPath)
+      oldVal = parentElement.get(keyXPath)
+      logger.info("changing attribute %s = %s to %s", key, oldVal, value)
+      parentElement.set(keyXPath, str(value))
+      return
+    else:
+      logger.info("changing element value %s = %s to %s", key, element.text, value)
+      element.text = str(value)
+      return
+
+  def _getPaths(self, key):
+    parentXPath = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF/{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description"
+    keyXPath = '{{http://ns.adobe.com/camera-raw-settings/1.0/}}{0}'.format(key)
+    fullXPath = "{0}/{1}".format(parentXPath, keyXPath)
+    return parentXPath, keyXPath, fullXPath
 
   def save(self):
     self.tree.write(self.filename)
     return
-
-
-
-

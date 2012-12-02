@@ -5,6 +5,10 @@ import argparse
 import os, sys, math, time, datetime, logging
 from SideCar import SideCar
 
+
+def noEasing(t, b, c, d):
+  return c * t / d + b;
+
 # Create logger
 LOG_FILENAME = 'timeroom.log'
 logger = logging.getLogger("TimeRoom")
@@ -29,5 +33,19 @@ for item in args.sidecars:
 
 logger.info("Successfully loaded %s files.", len(sidecars))
 
+key = "Exposure2012"
+
+orig = sidecars[0].get(key)
+dest = sidecars[ len(sidecars) - 1 ].get(key)
+size = float(len(sidecars)-1)
+
+logger.info("tweening %s from %s to %s across %s files", key, orig, dest, size)
+for idx, item in enumerate(sidecars):
+  factor = noEasing(idx, 0, 1, size);
+  value = orig + ( dest - orig ) * factor
+  item.set( key, value )
+
 for item in sidecars:
-  print item.get("RawFileName")
+  item.save()
+
+

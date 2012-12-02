@@ -4,7 +4,7 @@
 import argparse
 import os, sys, math, time, datetime, logging
 from SideCar import SideCar
-
+import crstags
 
 def noEasing(t, b, c, d):
   return c * t / d + b;
@@ -33,19 +33,29 @@ for item in args.sidecars:
 
 logger.info("Successfully loaded %s files.", len(sidecars))
 
-key = "Exposure2012"
+#Determine key
+keys = []
+for key in crstags.CRS_TAGS:
+  if ( crstags.CRS_TAGS[key] < 4 ):
+    keys.append(key)
 
-orig = sidecars[0].get(key)
-dest = sidecars[ len(sidecars) - 1 ].get(key)
-size = float(len(sidecars)-1)
+for key in keys:
+  ##### tween (convert to method)
+  orig = sidecars[0].get(key)
+  dest = sidecars[ len(sidecars) - 1 ].get(key)
+  if (orig == dest):
+    continue
+  size = float(len(sidecars)-1)
 
-logger.info("tweening %s from %s to %s across %s files", key, orig, dest, size)
-for idx, item in enumerate(sidecars):
-  factor = noEasing(idx, 0, 1, size);
-  value = orig + ( dest - orig ) * factor
-  item.set( key, value )
+  logger.info("tweening %s from %s to %s across %s files", key, orig, dest, size)
+  for idx, item in enumerate(sidecars):
+    factor = noEasing(idx, 0, 1, size);
+    value = orig + ( dest - orig ) * factor
+    item.set( key, value )
+  ##### end tween
 
-for item in sidecars:
-  item.save()
+# # Save the data
+# for item in sidecars:
+#   item.save()
 
 

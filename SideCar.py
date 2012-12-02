@@ -3,11 +3,12 @@
 import getopt, sys
 import datetime, logging
 import xml.etree.ElementTree as ET
+import crstags
 
 # Create logger
 LOG_FILENAME = 'timeroom.log'
 logger = logging.getLogger("SideCar")
-logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
+logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Register Namespaces
 ET.register_namespace("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
@@ -35,6 +36,20 @@ class SideCar:
     self.root = self.tree.getroot()
     return
 
+  def formatGet(self, key, value):
+    logger.debug("formatting get of value %s", value)
+    if (value == None or value == 'None'): value = 0
+    t = crstags.CRS_TAGS[key]
+    if ( t == crstags.DataType.INT ):
+      return int(float(value))
+    elif ( t == crstags.DataType.REAL ):
+      return float(value)
+    elif ( t == crstags.DataType.SINT ):
+      if ( value[0] == '+'): value = value[1:]
+      return int(float(value))
+    else:
+      return int(float(value))
+
   def get(self, key):
     parentXPath, keyXPath, fullXPath = self._getPaths(key)
 
@@ -42,11 +57,11 @@ class SideCar:
     if (element == None):
       parentElement = self.root.find(parentXPath)
       val = parentElement.get(keyXPath)
-      logger.info("reading attribute %s = %s", key, val)
-      return float(val)
+      logger.debug("reading attribute %s = %s", key, val)
+      return self.formatGet(key, val)
     else:
-      logger.info("reading element %s = %s", key, element.text)
-      return float(element.text)
+      logger.debug("reading element %s = %s", key, element.text)
+      return self.formatGet(key, element.text)
 
   def set(self, key, value):
     # save value (preserve format with element or attr)
@@ -56,11 +71,11 @@ class SideCar:
     if (element == None):
       parentElement = self.root.find(parentXPath)
       oldVal = parentElement.get(keyXPath)
-      logger.info("changing attribute %s = %s to %s", key, oldVal, value)
+      logger.debug("changing attribute %s = %s to %s", key, oldVal, value)
       parentElement.set(keyXPath, str(value))
       return
     else:
-      logger.info("changing element value %s = %s to %s", key, element.text, value)
+      logger.debug("changing element value %s = %s to %s", key, element.text, value)
       element.text = str(value)
       return
 

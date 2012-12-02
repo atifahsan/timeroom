@@ -2,10 +2,12 @@
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/XMP.html
 
 class DataType:
-    BOOL=1
+    REAL=1
     INT=2
-    STRING=3
-    REAL=4
+    SINT=3
+    BOOL=4
+    STRING=5
+    
 
 CRS_TAGS = {
   'AlreadyApplied': DataType.BOOL,
@@ -27,7 +29,7 @@ CRS_TAGS = {
   'ColorNoiseReduction': DataType.INT,
   'ColorNoiseReductionDetail': DataType.INT,
   'Contrast': DataType.INT,
-  'Contrast2012': DataType.INT,
+  'Contrast2012': DataType.SINT,
   'Converter': DataType.STRING,
   'ConvertToGrayscale': DataType.BOOL,
   #CropAngle real

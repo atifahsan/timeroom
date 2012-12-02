@@ -36,14 +36,16 @@ logger.info("Successfully loaded %s files.", len(sidecars))
 #Determine key
 keys = []
 for key in crstags.CRS_TAGS:
-  if ( crstags.CRS_TAGS[key] < 4 ):
+  t, d = crstags.CRS_TAGS[key]
+  if ( t < 4 ):
     keys.append(key)
 
 for key in keys:
   ##### tween (convert to method)
   orig = sidecars[0].get(key)
   dest = sidecars[ len(sidecars) - 1 ].get(key)
-  if (orig == dest):
+  if (orig == dest or dest == None or orig == None):
+    logger.debug("skipping %s because keyframe is None or match", key)
     continue
   size = float(len(sidecars)-1)
 
@@ -54,8 +56,10 @@ for key in keys:
     item.set( key, value )
   ##### end tween
 
-# # Save the data
-# for item in sidecars:
-#   item.save()
+# Save the data
+logger.info("Succes, saving...")
+for item in sidecars:
+  item.save()
 
-
+logger.info("Done")
+print "Done"

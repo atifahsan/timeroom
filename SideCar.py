@@ -36,10 +36,14 @@ class SideCar:
     self.root = self.tree.getroot()
     return
 
+  def getDefault(self, key):
+    t, d = crstags.CRS_TAGS[key]
+    return d
+
   def formatGet(self, key, value):
-    logger.debug("formatting get of value %s", value)
-    if (value == None or value == 'None'): value = 0
-    t = crstags.CRS_TAGS[key]
+    logger.debug("formatting get of value %s on key %s", value, key)
+    if (value == None or value == 'None'): return self.getDefault(key)
+    t, d = crstags.CRS_TAGS[key]
     if ( t == crstags.DataType.INT ):
       return int(float(value))
     elif ( t == crstags.DataType.REAL ):
@@ -48,7 +52,13 @@ class SideCar:
       if ( value[0] == '+'): value = value[1:]
       return int(float(value))
     else:
-      return int(float(value))
+      return self.getDefault(key)
+
+  def formatSet(self, key, value):
+    logger.debug("formatting set of value %s on key %s", value, key)
+    if (value == None or value == "None"): value = ""
+    return str(value)
+
 
   def get(self, key):
     parentXPath, keyXPath, fullXPath = self._getPaths(key)
@@ -72,11 +82,11 @@ class SideCar:
       parentElement = self.root.find(parentXPath)
       oldVal = parentElement.get(keyXPath)
       logger.debug("changing attribute %s = %s to %s", key, oldVal, value)
-      parentElement.set(keyXPath, str(value))
+      parentElement.set(keyXPath, self.formatSet(key, value))
       return
     else:
       logger.debug("changing element value %s = %s to %s", key, element.text, value)
-      element.text = str(value)
+      element.text = self.formatSet(key, value)
       return
 
   def _getPaths(self, key):

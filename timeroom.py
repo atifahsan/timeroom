@@ -15,7 +15,7 @@ logger = logging.getLogger("TimeRoom")
 logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Define arguments
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='Interpolate CRS values in a time lapse sequence of XMP sidecars.')
 parser.add_argument('sidecars', metavar='sidecars', type=str, nargs='+',
                    help='a list of xmp files to process (will be ordered alphabetically)')
 
@@ -33,7 +33,7 @@ for item in args.sidecars:
 
 logger.info("Successfully loaded %s files.", len(sidecars))
 
-#Determine key
+#Determine keys to tween
 keys = []
 for key in crstags.CRS_TAGS:
   t, d = crstags.CRS_TAGS[key]
@@ -57,7 +57,7 @@ for key in keys:
   ##### end tween
 
 # Save the data
-logger.info("Succes, saving...")
+logger.info("Saving...")
 for item in sidecars:
   item.save()
 

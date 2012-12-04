@@ -8,10 +8,6 @@ class DataType:
     BOOL=4
     STRING=5
 
-CRS_DEFAULTS = {
-
-}
-
 CRS_TAGS = {
   'AlreadyApplied': (DataType.BOOL, None),
   'AutoBrightness': (DataType.BOOL, None),

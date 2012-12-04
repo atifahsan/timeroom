@@ -5,6 +5,7 @@ import argparse
 import os, sys, math, time, datetime, logging
 from SideCar import SideCar
 import crstags
+from glob import glob
 
 def noEasing(t, b, c, d):
   return c * t / d + b;
@@ -20,13 +21,16 @@ parser.add_argument('sidecars', metavar='sidecars', type=str, nargs='+',
                    help='a list of xmp files to process (will be ordered alphabetically)')
 
 args = parser.parse_args()
-
-args.sidecars.sort()
-logger.info("File list: %s", args.sidecars)
+print "args", args.sidecars[0]
+s = glob(args.sidecars[0])
+s.sort()
+s.sort(key=len)
+print "Files: ", s
+logger.info("File list: %s", s)
 
 sidecars = []
 
-for item in args.sidecars:
+for item in s:
   logger.info("Loading %s...", item)
   xmp = SideCar(item)
   sidecars.append(xmp)

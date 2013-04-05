@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ET
 import xmptags
 from fractions import Fraction
+import sys
 
 # Register Namespaces
 NS_MAP = {
@@ -80,15 +81,6 @@ class SideCarLevel:
         if ns == None: ns = self.ns
         return self._set(key, value, ns, self.schema)
 
-    def iter(self):
-        for item in self.root.items():
-            print item
-
-    def tc(self):
-        """Test code to dump all tone curve values"""
-        for item in self.root.iter("{{{0}}}li".format(NS_MAP['rdf'])):
-            print item.text
-
 class GradientBasedCorrection(SideCarLevel):
     """Class to represent a Lightroom GBC"""
 
@@ -99,6 +91,40 @@ class GradientBasedCorrection(SideCarLevel):
         self.CorrectionMasks = []
         for cm in self.root.iter("{{{0}}}li".format(NS_MAP['rdf'])):
             self.CorrectionMasks.append(SideCarLevel(cm, 'crs', xmptags.CRS_GBC_CM_TAGS))
+
+class ToneCurvePoint(SideCarLevel):
+    """Class to represent a Lightroom ToneCurvePV2012 point"""
+    def __init__(self, root):
+        SideCarLevel.__init__(self, root, None, None)
+
+    def _get(self):
+        """Get point as [x, y] co-ordinates"""
+        xy = self.root.text.split(', ')
+        xy[0] = int(xy[0])
+        xy[1] = int(xy[1])
+        return xy
+
+    def get(self, key):
+        """Get x or y point"""
+        x, y = self._get()
+
+        if key == 'ToneCurvePV2012X':
+            return x
+        elif key == 'ToneCurvePV2012Y':
+            return y
+        else:
+            return None
+
+    def set(self, key, value):
+        """Set x or y point"""
+        x, y = self._get()
+
+        if key == 'ToneCurvePV2012X':
+            x = value
+        elif key == 'ToneCurvePV2012Y':
+            y = value
+
+        self.root.text = "%d, %d" % (x, y)
 
 class SideCar(SideCarLevel):
     """Class to represent an XMP RAW sidecar file"""
@@ -112,9 +138,15 @@ class SideCar(SideCarLevel):
 
         # Add list of ToneCurves
         self.ToneCurves = []
-        for color in ['', 'Red', 'Green', 'Blue']:
+        for idx, color in enumerate(['', 'Red', 'Green', 'Blue']):
             path = "{{{0}}}ToneCurvePV2012{1}".format(NS_MAP['crs'], color)
-            self.ToneCurves.append(SideCarLevel(self.root.find(path), 'rdf', xmptags.CRS_TC_TAGS))
+            tcroot = self.root.find(path)
+            self.ToneCurves.append([])
+            if tcroot == None:
+                print '%s has no ToneCurvePV2012%s points!  Exiting.' % (filename, color)
+                sys.exit(1)
+            for point in tcroot.iter("{{{0}}}li".format(NS_MAP['rdf'])):
+                self.ToneCurves[idx].append(ToneCurvePoint(point))
 
         # Add list of GBCs
         self.GradientBasedCorrections = []

@@ -51,6 +51,10 @@ logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(le
 parser = argparse.ArgumentParser(description='Interpolate CRS values in a time lapse sequence of XMP sidecars.')
 parser.add_argument('--init', dest='init', action='store_true', default=False,
                    help='detect and initialize keyframes based on EV changes')
+parser.add_argument('--ignore-grads', dest='ignore_grads', action='store_true', default=False,
+                   help='ignore graduated filters')
+parser.add_argument('--ignore-curves', dest='ignore_curves', action='store_true', default=False,
+                   help='ignore tone curves')
 parser.add_argument('sidecars', metavar='sidecars', type=str, nargs='+',
                    help='a list of xmp files to process (will be ordered alphabetically)')
 
@@ -110,6 +114,10 @@ if args.init:
     sys.exit(0)
 
 
+elif len(keyframes) < 2:
+    print '%d keyframes detected, minimum required = 2.  Have you run --init?' % (len(keyframes))
+    sys.exit(1)
+
 else:
 
     # Interpolate CRS values between keyframes
@@ -128,36 +136,75 @@ else:
             # Interpolate top-level CRS settings
             interpolate(seq, xmptags.CRS_TAGS)
 
-            # Interpolate GradientBasedCorrections & CorrectionMasks
-            gbcslist = []
-            cmslist = []
-            for gdb in sidecars[a].GradientBasedCorrections:
-                gbcslist.append([])
-                cmslist.append([])
-            for xmp in seq:
-                n = len(xmp.GradientBasedCorrections)
-                if n != len(gbcslist):
-                    print '%s has %d GradientBasedCorrections, expected %d (%s).  Exiting.' % (xmp.filename,
-                                                                                               n,
-                                                                                               len(gbcslist),
-                                                                                               sidecars[a].filename)
+            if not args.ignore_grads:
+                # Interpolate GradientBasedCorrections (& CorrectionMasks)
+                gbcslist = []
+                cmslist = []
+                for gbc in sidecars[a].GradientBasedCorrections:
+                    gbcslist.append([])
+                    cmslist.append([])
+
+                for xmp in seq:
+                    # Generate list of GBCs and associated CMs
+                    n = len(xmp.GradientBasedCorrections)
+                    if n != len(gbcslist):
+                        print '%s has %d GradientBasedCorrections, expected %d (%s).  Exiting.' % (xmp.filename,
+                                                                                                   n,
+                                                                                                   len(gbcslist),
+                                                                                                   sidecars[a].filename)
+                        sys.exit(1)
+                    for idx, gbc in enumerate(xmp.GradientBasedCorrections):
+                        gbcslist[idx].append(gbc)
+                        cmslist[idx].append(gbc.CorrectionMasks[0])
+
+                # Do interpolation
+                for gbcs in gbcslist:
+                    print 'Interpolating GBCs'
+                    interpolate(gbcs, xmptags.CRS_GBC_TAGS)
+                for cms in cmslist:
+                    print 'Interpolating CMs'
+                    interpolate(cms, xmptags.CRS_GBC_CM_TAGS)
+
+            if not args.ignore_curves:
+                # Interpolate ToneCurves
+                tcslist = []
+                for idx, tc in enumerate(sidecars[a].ToneCurves):
+                    tcslist.append([])
+                    for tcp in tc:
+                        tcslist[idx].append([])
+                if len(tcslist) != 4 or len(sidecars[b].ToneCurves) != 4:
+                    print '%s has %d ToneCurvePV2012s, expecting 4!  Exiting.' % (xmp.filename, len(tcslist))
                     sys.exit(1)
-                for idx, gbc in enumerate(xmp.GradientBasedCorrections):
-                    gbcslist[idx].append(gbc)
-                    cmslist[idx].append(gbc.CorrectionMasks[0])
 
-            for gbcs in gbcslist:
-                print 'Interpolating GBCs'
-                interpolate(gbcs, xmptags.CRS_GBC_TAGS)
+                for xmp in seq:
+                    # Generate lists of TC points
+                    n = len(xmp.ToneCurves)
+                    if n != len(tcslist):
+                        print '%s has %d ToneCurvePV2012s, expecting 4!  Exiting.' % (xmp.filename, n)
+                        sys.exit(1)
+                    for color, tc in enumerate(xmp.ToneCurves):
+                        if len(tc) != len(tcslist[color]):
+                            print '%s has %d ToneCurvePV2012(%d) points, expecting %d!  Exiting.' % (xmp.filename,
+                                                                                                     len(tc),
+                                                                                                     color,
+                                                                                                     len(tcslist[color]))
+                            sys.exit(1)
+                        for idx, tcp in enumerate(tc):
+                            tcslist[color][idx].append(tcp)
 
-            for cms in cmslist:
-                print 'Interpolating CMs'
-                interpolate(cms, xmptags.CRS_GBC_CM_TAGS)
+                # Do interpolation
+                for color, tc in enumerate(tcslist):
+                    print 'Interpolating TC color', color
+                    for tcps in tc:
+                        interpolate(tcps, xmptags.CRS_TC_TAGS)
+                        for tcp in tcps:
+                            print tcp.get('ToneCurvePV2012X'), tcp.get('ToneCurvePV2012Y')
 
             print '%s: End keyframe, rating = %d' % (sidecars[b].filename, sidecars[b].getRating())
     except StopIteration:
         pass
 
+    print 'Saving metadata to files.'
     logger.info("Saving")
     for xmp in sidecars:
         xmp.save()

@@ -61,6 +61,8 @@ CRS_GBC_TAGS = {
 }
 
 CRS_TC_TAGS = {
+    'ToneCurvePV2012X': (DataType.INT, None),
+    'ToneCurvePV2012Y': (DataType.INT, None)
 }
 
 CRS_TAGS = {

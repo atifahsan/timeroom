@@ -1,14 +1,8 @@
 #!/usr/bin/python
 
-import getopt, sys
-import datetime, logging
 import xml.etree.ElementTree as ET
-import crstags
-
-# Create logger
-LOG_FILENAME = 'timeroom.log'
-logger = logging.getLogger("SideCar")
-logging.basicConfig(filename=LOG_FILENAME, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+import xmptags
+from fractions import Fraction
 
 # Register Namespaces
 NS_MAP = {
@@ -29,75 +23,133 @@ NS_MAP = {
 for ns in NS_MAP:
   ET.register_namespace(ns, NS_MAP[ns])
 
-class SideCar:
-  """Class to represent an xmp RAW sidecar file"""
-  filename, tree, root = None, None, None
 
-  def __init__(self, filename):
-    self.filename = filename
-    self.tree = ET.parse(filename)
-    self.root = self.tree.getroot()
-    return
+class SideCarLevel:
+    """Class to represent a level in an XMP RAW sidecar file"""
 
-  def _getDefault(self, key):
-    t, d = crstags.CRS_TAGS[key]
-    return d
+    def __init__(self, root, ns, schema):
+        self.root = root
+        self.ns = ns
+        self.schema = schema
 
-  def _formatGet(self, key, value):
-    logger.debug("formatting get of value %s on key %s", value, key)
-    if (value == None or value == 'None'): return self._getDefault(key)
-    t, d = crstags.CRS_TAGS[key]
-    if ( t == crstags.DataType.INT ):
-      return int(float(value))
-    elif ( t == crstags.DataType.REAL ):
-      return float(value)
-    elif ( t == crstags.DataType.SINT ):
-      if ( value[0] == '+'): value = value[1:]
-      return int(float(value))
-    else:
-      return self._getDefault(key)
+    def _getDefault(self, key, ns, schema):
+        """Return default value for key in schema"""
+        t, d = schema[key]
+        return d
 
-  def _formatSet(self, key, value):
-    logger.debug("formatting set of value %s on key %s", value, key)
-    if (value == None or value == "None"): value = ""
-    return str(value)
+    def _formatGet(self, key, value, ns, schema):
+        """Return value with the correct datatype, or default value"""
+        if value == None:
+            return self._getDefault(key, ns, schema)
 
-  def get(self, key):
-    parentXPath, keyXPath, fullXPath = self._getPaths(key)
+        t, d = schema[key]
+        if t == xmptags.DataType.INT:
+            return int(float(value))
+        elif t == xmptags.DataType.REAL:
+            return float(value)
+        elif t == xmptags.DataType.SINT:
+            if value[0] == '+':
+                value = value[1:]
+            return int(float(value))
+        elif t == xmptags.DataType.RATIONAL:
+            return Fraction(value)
+        elif t == xmptags.DataType.STRING:
+            return value
+        else:
+            return self._getDefault(key, ns, schema)
 
-    element = self.root.find(fullXPath)
-    if (element == None):
-      parentElement = self.root.find(parentXPath)
-      val = parentElement.get(keyXPath)
-      r = self._formatGet(key, val)
-      logger.debug("reading attribute %s = %s", key, r)
-      return r
-    else:
-      r = self._formatGet(key, element.text)
-      logger.debug("reading element %s = %s", key, r)
-      return r
+    def _get(self, key, ns, schema):
+        """Get key in specified namespace, schema"""
+        value = self.root.get("{{{0}}}{1}".format(NS_MAP[ns], key))
 
-  def set(self, key, value):
-    parentXPath, keyXPath, fullXPath = self._getPaths(key)
+        return self._formatGet(key, value, ns, schema)
 
-    element = self.root.find(fullXPath)
-    if (element == None):
-      parentElement = self.root.find(parentXPath)
-      oldVal = parentElement.get(keyXPath)
-      logger.debug("changing attribute %s = %s to %s", key, oldVal, value)
-      parentElement.set(keyXPath, self._formatSet(key, value))
-      return
-    else:
-      logger.debug("changing element value %s = %s to %s", key, element.text, value)
-      element.text = self._formatSet(key, value)
-      return
+    def get(self, key, ns=None):
+        """Get key in specified namespace, default schema"""
+        if ns == None: ns = self.ns
+        return self._get(key, ns, self.schema)
 
-  def _getPaths(self, key):
-    parentXPath = "{{{0}}}RDF/{{{1}}}Description".format( NS_MAP['rdf'], NS_MAP['rdf'])
-    keyXPath = '{{{0}}}{1}'.format(NS_MAP['crs'], key)
-    fullXPath = "{0}/{1}".format(parentXPath, keyXPath)
-    return parentXPath, keyXPath, fullXPath
+    def _set(self, key, value, ns, schema):
+        if value == None or value == "None":
+            value = ""
 
-  def save(self):
-    self.tree.write(self.filename)
-    return
+        self.root.set("{{{0}}}{1}".format(NS_MAP[ns], key), str(value))
+
+    def set(self, key, value, ns=None):
+        """Set key to value in specified namespace, default schema"""
+        if ns == None: ns = self.ns
+        return self._set(key, value, ns, self.schema)
+
+    def iter(self):
+        for item in self.root.items():
+            print item
+
+    def tc(self):
+        """Test code to dump all tone curve values"""
+        for item in self.root.iter("{{{0}}}li".format(NS_MAP['rdf'])):
+            print item.text
+
+class GradientBasedCorrection(SideCarLevel):
+    """Class to represent a Lightroom GBC"""
+
+    def __init__(self, root):
+        SideCarLevel.__init__(self, root, 'crs', xmptags.CRS_GBC_TAGS)
+
+        # Add list of CMs
+        self.CorrectionMasks = []
+        for cm in self.root.iter("{{{0}}}li".format(NS_MAP['rdf'])):
+            self.CorrectionMasks.append(SideCarLevel(cm, 'crs', xmptags.CRS_GBC_CM_TAGS))
+
+class SideCar(SideCarLevel):
+    """Class to represent an XMP RAW sidecar file"""
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.tree = ET.parse(filename)
+
+        path = "{{{0}}}RDF/{{{1}}}Description".format(NS_MAP['rdf'], NS_MAP['rdf'])
+        SideCarLevel.__init__(self, self.tree.find(path), 'crs', xmptags.CRS_TAGS)
+
+        # Add list of ToneCurves
+        self.ToneCurves = []
+        for color in ['', 'Red', 'Green', 'Blue']:
+            path = "{{{0}}}ToneCurvePV2012{1}".format(NS_MAP['crs'], color)
+            self.ToneCurves.append(SideCarLevel(self.root.find(path), 'rdf', xmptags.CRS_TC_TAGS))
+
+        # Add list of GBCs
+        self.GradientBasedCorrections = []
+        path = "{{{0}}}GradientBasedCorrections".format(NS_MAP['crs'])
+        gbcroot = self.root.find(path)
+        if gbcroot != None:
+            for gbc in gbcroot.iter("{{{0}}}Description".format(NS_MAP['rdf'])):
+                self.GradientBasedCorrections.append(GradientBasedCorrection(gbc))
+
+    def getExposureTime(self):
+        """Returns the exposure time"""
+        return self._get('ExposureTime', 'exif', xmptags.EXIF_TAGS)
+
+    def getFNumber(self):
+        """Returns the aperture value"""
+        return self._get('FNumber', 'exif', xmptags.EXIF_TAGS)
+
+    def getISOSpeedRating(self):
+        """Returns the ISO speed"""
+        key = 'ISOSpeedRatings'
+        ns = 'exif'
+        path = "{{{0}}}{1}/{{{2}}}Seq/{{{3}}}li".format(NS_MAP[ns],
+                                                        key,
+                                                        NS_MAP['rdf'],
+                                                        NS_MAP['rdf'])
+        value = self.root.find(path).text
+        return self._formatGet(key, value, ns, xmptags.EXIF_TAGS)
+
+    def getRating(self):
+        """Returns the XMP Rating"""
+        return self._get('Rating', 'xmp', xmptags.XMP_TAGS)
+
+    def setRating(self, value):
+        """Sets the XMP Rating"""
+        self._set('Rating', value, 'xmp', xmptags.XMP_TAGS)
+
+    def save(self):
+        self.tree.write(self.filename)

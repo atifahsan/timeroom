@@ -34,11 +34,11 @@ def interpolate(seq, schema):
         logger.info("tweening %s from %s to %s across %s files", key, orig, dest, factor)
         for idx, xmp in enumerate(seq[a+1:b]):
             dlt = dest - orig
-            inc = dlt / factor
-            value = orig + inc * (idx + 1)
+            inc = dlt / float(factor)
+            value = int(orig + inc * (idx + 1))
 #            print '%s: Changing %s from %s to %s (+%s)' % (xmp.filename, key, xmp.get(key), value, inc)
 #            print '%s: Changing %s from %s to %s (+%s)' % ('filename', key, xmp.get(key), value, inc)
-            logger.info("%s: Changing %s from %s to %s (+%s)", 'filename', key, xmp.get(key), value, inc)
+            logger.info("%s: Changing %s from %s to %s (+%.2f)", 'filename', key, xmp.get(key), value, inc)
             xmp.set(key, value)
 
 

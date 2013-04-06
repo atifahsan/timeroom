@@ -111,6 +111,7 @@ if args.init:
         xmp.save()
 
     print 'Initialised %d keyframes.' % (len(keyframes))
+    logger.info('Initialised %d keyframes.' % (len(keyframes)))
     sys.exit(0)
 
 
@@ -132,6 +133,7 @@ else:
             cnt = len(seq) - 1
 
             print '%s: Start keyframe, rating = %d' % (sidecars[a].filename, sidecars[a].getRating())
+            logger.info('%s: Start keyframe, rating = %d' % (sidecars[a].filename, sidecars[a].getRating()))
 
             # Interpolate top-level CRS settings
             interpolate(seq, xmptags.CRS_TAGS)
@@ -197,10 +199,9 @@ else:
                     print 'Interpolating TC color', color
                     for tcps in tc:
                         interpolate(tcps, xmptags.CRS_TC_TAGS)
-                        for tcp in tcps:
-                            print tcp.get('ToneCurvePV2012X'), tcp.get('ToneCurvePV2012Y')
 
             print '%s: End keyframe, rating = %d' % (sidecars[b].filename, sidecars[b].getRating())
+            logger.info('%s: End keyframe, rating = %d' % (sidecars[b].filename, sidecars[b].getRating()))
     except StopIteration:
         pass
 

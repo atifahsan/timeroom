@@ -3,6 +3,8 @@ Interpolate values between keyframes in a sequence of sidecar files (XMPs).
 
 This can be used in place of LRTimelapse for interpolation of basic values, point curves and graduated filters.  Keyframes are detected by their Lightroom star rating.
 
+[[/screenshots/timeroom.png]]
+
 ### WARNING
 Treat this software as alpha at best.  When you come across errors, please get in touch.
 

@@ -6,6 +6,11 @@ This can be used in place of LRTimelapse for interpolation of basic values, poin
 ### WARNING
 Treat this software as alpha at best.  When you come across errors, please get in touch.
 
+## Windows binaries
+Windows binaries are available in another repository.  Click the big download zip button.
+
+Windows binaries are available at https://github.com/lewisthompson/timeroombinaries
+
 ## Motivation
 
 This is the last missing piece of (Free) software you need to make quality timelapses using Adobe Lightroom. There are a number of great free pieces of software that will deshake, stabilize, and compress your timelapse for you. With this software, you can edit frames of your timelapse in Lightroom then smooth those changes out across your entire sequence.

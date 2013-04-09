@@ -1,60 +1,49 @@
 ## Summary
 Interpolate values between keyframes in a sequence of sidecar files (XMPs).
 
-This can be used in place of LRTimeLapse for very basic value interpolation.  Right now,
-keyframes are hard coded to the first and last images in the input sequence.
+This can be used in place of LRTimelapse for interpolation of basic values, point curves and graduated filters.  Keyframes are detected by their Lightroom star rating.
+
+### WARNING
+Treat this software as alpha at best.  When you come across errors, please get in touch.
 
 ## Motivation
 
-This is the last missing piece of (Free) software you need to make quality timelapses using Adobe LightRoom. There are a number of great free pieces of software that will deshake, stabilize, and compress your timelapse for you. With this software, you can edit frames of your timelapse in Lightroom then smooth those changes out across your entire sequence.
+This is the last missing piece of (Free) software you need to make quality timelapses using Adobe Lightroom. There are a number of great free pieces of software that will deshake, stabilize, and compress your timelapse for you. With this software, you can edit frames of your timelapse in Lightroom then smooth those changes out across your entire sequence.
 
 For instance, if you have a sunset timelapse, you may want to adjust the white balance as the sun goes down and transitions into night.  You can edit the whie balance on the last frame, and this will smoothly transition the frames into that white balance.  Post processing is discussed more at the end of this readme.
 
 ## Usage
 
-### Generate XMP files for your sequence
-In LightRoom, generate xmp (sidecar) files for your image sequence by selecting them, then right click -> Metadata -> Save Metadata to files.
+### Generate XMP sidecar files for your sequence
+In Lightroom, prior to any edits or changes, select all images in a specific folder, right click and select Metadata -> Save Metadata to files.
 
-### Edit your keyframes
-Right now, TimeRoom only supports keyframes in the first and last image in your sequence.  I'll be working on more flexibility of this when I have time (or help me!).
+### Initialize in Timeroom
+Navigate to the folder and click Read to load basic metadata from the sidecars.  If you are happy to proceed click Initialize which will autodetect keyframes (the first & last in the directory, as well as images either side of an EV change (e.g. change of aperture, shutter speed or ISO)) as well as set a default White Balance.
 
-Edit the first and last image in LightRoom, then save the metadata again.
+Select Save to write these ratings and other adjustments back to the sidecar files.
 
-### Run TimeRoom
-#### Warning: Back up any xmp files before running TimeRoom. This is still experimental software and I make no guarantees it will work correctly.
-Then execute the timeroom.py with a list of xmp files as arguments.
+### Edit keyframes in Lightroom
+In Lightroom select all images in the folder, right click and select Metadata -> Read Metadata from files.  Ratings should show up for keyframe images and white balance may be adjusted in image previews.  To show just keyframes select >= 1 in the Grid view filter.
+#### You can safely add/remove keyframes by changing the star rating in Lightroom
+Timeroom will transition settings between any pair of keyframes, so edit as required.  Keyframes either side of an EV change are given the ratings 2 and 3, respectively.  You can use the LRTimelapse Holy Grail method of matching total exposures for complicated transitions.
 
-```bash
-	$ ./timeroom.py *.xmp
-```
+Once all edits are made revert to showing all images in Grid view and right click and select Metadata -> Save Metadata to files.
+#### Unlike LRTimelapse *you must save metadata for all images*, not just keyframes
 
-or 
+### Reload and process in Timeroom
+Reload changes metadata by clicking Read in Timeroom.  Currently the GUI does not provide much visual feedback.
 
-```bash
-	$ ./timeroom.py 20121129-EOS30D-001-0001.xmp 20121129-EOS30D-001-0002.xmp 20121129-EOS30D-001-0003.xmp
-```
+By default Timeroom will not try and transition tone curves and graduated filters.  If you wish to transition either, click the relevant toolbar button.  If you choose to do this you must ensure that *all* images have the same number of graduated filters (and that they were added in the same order - I recommend syncing Develop settings for these adjustments) and that any given tone curve has the same number of points (e.g. if one image has 4 points on the green tone curve so must every other image).
 
-Input files will automatically be sorted alphabetically.  Key frames will become the first and last files in this sorted list.
-
-All integer and real values will be 'tweened' from the first frame to the last frame.  It will save all the interpolated data into the sidecare sequence.
+Click Process to interpolate values and save to write changes back to metadata.
 
 ### Reload 
-Now tell LightRoom to reload metadata on your image sequence!
-
-
-### Post processing
-
-Now deflicker and stabilize the frames in a tool such as [virtualdub](http://www.virtualdub.org/)
-
-[Deflicker plugin for virtualdub](http://neuron2.net/deflick/flick.html)
-
-You can follow the same basics for stabilization as LRTimeLapse
-[Deshake workflow](http://forum.lrtimelapse.com/Thread-removal-of-blurring-with-deshaker)
-
+Tell Lightroom to reload metadata from files.
 
 ## Summarized Workflow
 
-* LightRoom - Save all metadata to files
-* LightRoom - Edit keyframes (first and last), then save metadata
-* TimeRoom - Execute
-* Lightroom - Read metadata from files
+* Lightroom: Make no adjustments, save metadata to files
+* Timeroom: Read, Initialize, Save
+* Lightroom: Read metadata from files, make adjustments to keyframes, save metadata to files
+* Timeroom: Read, Process, Save
+* Lightroom: Read metadata from files

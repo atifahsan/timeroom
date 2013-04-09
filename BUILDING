@@ -1,0 +1,23 @@
+GUI is built with Qt/PySide and Qt Creator for UI design.
+
+UNIX:
+=====
+
+Debian-based:
+
+# apt-get install python-pyside pyside-tools qtcreator
+
+Convert UI to Python code:
+
+% pyside-uic TimeroomMainWindow.ui -o TimeroomMainWindow.py
+
+Windows:
+========
+
+Install Python, PySide and cfx_freeze (all available as binaries)
+
+Generate a standalone executable:
+
+Building Windows executables:
+
+> C:\Python2.7\Scripts\cfxfreeze timeroomgui.py --target-dir dist --base-name Win32GUI --include-modules atexit

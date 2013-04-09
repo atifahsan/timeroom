@@ -126,12 +126,21 @@ class ToneCurvePoint(SideCarLevel):
 
         self.root.text = "%d, %d" % (x, y)
 
+class SideCarCorruptError(Exception):
+    def __init__(self, filename, reason):
+        self.filename = filename
+        self.reason = reason
+
+    def __str__(self):
+        return '%s corrupt (%s)' % (self.filename, self.reason)
+
 class SideCar(SideCarLevel):
     """Class to represent an XMP RAW sidecar file"""
 
     def __init__(self, filename):
         self.filename = filename
         self.tree = ET.parse(filename)
+        self.curvesCount = 0
 
         path = "{{{0}}}RDF/{{{1}}}Description".format(NS_MAP['rdf'], NS_MAP['rdf'])
         SideCarLevel.__init__(self, self.tree.find(path), 'crs', xmptags.CRS_TAGS)
@@ -143,10 +152,12 @@ class SideCar(SideCarLevel):
             tcroot = self.root.find(path)
             self.ToneCurves.append([])
             if tcroot == None:
-                print '%s has no ToneCurvePV2012%s points!  Exiting.' % (filename, color)
-                sys.exit(1)
+                continue
+            self.curvesCount = self.curvesCount + 1
             for point in tcroot.iter("{{{0}}}li".format(NS_MAP['rdf'])):
                 self.ToneCurves[idx].append(ToneCurvePoint(point))
+        if self.curvesCount > 0 and self.curvesCount < 4: # expect none missing or all missing
+            raise SideCarCorruptError(filename, 'ToneCurvePV2012 has %d curves (expect 0 or 4)' % (self.curvesCount))
 
         # Add list of GBCs
         self.GradientBasedCorrections = []
@@ -182,6 +193,14 @@ class SideCar(SideCarLevel):
     def setRating(self, value):
         """Sets the XMP Rating"""
         self._set('Rating', value, 'xmp', xmptags.XMP_TAGS)
+
+    def getCurvesCount(self):
+        """Returns the number of curves (should be 0 or 4)"""
+        return self.curvesCount
+
+    def getGradientsCount(self):
+        """Returns the number of gradient based corrections"""
+        return len(self.GradientBasedCorrections)
 
     def save(self):
         self.tree.write(self.filename)

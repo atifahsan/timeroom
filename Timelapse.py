@@ -6,42 +6,6 @@ import os
 import glob
 import sys
 
-def evChanged(a, b):
-    """Has the EV changed?  Check f/stop, shutter speed and ISO."""
-    return (a.getFNumber() != b.getFNumber()
-            or a.getExposureTime() != b.getExposureTime()
-            or a.getISOSpeedRating() != b.getISOSpeedRating())
-
-def interpolate(seq, schema):
-    # Determine keys to interpolate
-    keys = []
-    for key in schema:
-        t, d = schema[key]
-        if t <= xmptags.DataType.MAX_TWEENABLE:
-            keys.append(key)
-
-    a = 0               # index of start keyframe (in seq)
-    b = len(seq) - 1    # index of end keyframe (in seq)
-    factor = len(seq) - 1
-
-    for key in keys:
-        orig = seq[a].get(key)
-        dest = seq[b].get(key)
-
-        if (dest == None or orig == None):
-#            logger.debug("skipping %s because a keyframe is None", key)
-            continue
-
-#        logger.info("tweening %s from %s to %s across %s files", key, orig, dest, factor)
-        for idx, xmp in enumerate(seq[a+1:b]):
-            dlt = dest - orig
-            inc = dlt / float(factor)
-            value = type(dest)(orig + inc * (idx + 1))
-#            print '%s: Changing %s from %s to %s (+%s)' % (xmp.filename, key, xmp.get(key), value, inc)
-#            print '%s: Changing %s from %s to %s (+%s)' % ('filename', key, xmp.get(key), value, inc)
-#            logger.info("%s: Changing %s from %s to %s (+%.2f)", 'filename', key, xmp.get(key), value, inc)
-            xmp.set(key, value)
-
 class Timelapse:
     """Class to represent a timelapse"""
 
@@ -69,17 +33,56 @@ class Timelapse:
             if sidecar.getRating():
                 self.keyframes.append(self.sidecars.index(sidecar))
 
-    def writeSideCars(self):
+    def saveSideCars(self):
         for sidecar in self.sidecars:
-            sidecar.write()
+            sidecar.save()
+
+    def _evChanged(self, a, b):
+        """Has the EV changed?  Check f/stop, shutter speed and ISO."""
+        return (a.getFNumber() != b.getFNumber()
+                or a.getExposureTime() != b.getExposureTime()
+                or a.getISOSpeedRating() != b.getISOSpeedRating())
+
+    def _interpolate(self, seq, schema):
+        # Determine keys to interpolate
+        keys = []
+        for key in schema:
+            t, d = schema[key]
+            if t <= xmptags.DataType.MAX_TWEENABLE:
+                keys.append(key)
+
+        a = 0               # index of start keyframe (in seq)
+        b = len(seq) - 1    # index of end keyframe (in seq)
+        factor = len(seq) - 1
+
+        for key in keys:
+            orig = seq[a].get(key)
+            dest = seq[b].get(key)
+
+            if (dest == None or orig == None):
+    #            logger.debug("skipping %s because a keyframe is None", key)
+                continue
+
+    #        logger.info("tweening %s from %s to %s across %s files", key, orig, dest, factor)
+            for idx, xmp in enumerate(seq[a+1:b]):
+                dlt = dest - orig
+                inc = dlt / float(factor)
+                value = type(dest)(orig + inc * (idx + 1))
+    #            print '%s: Changing %s from %s to %s (+%s)' % (xmp.filename, key, xmp.get(key), value, inc)
+    #            print '%s: Changing %s from %s to %s (+%s)' % ('filename', key, xmp.get(key), value, inc)
+    #            logger.info("%s: Changing %s from %s to %s (+%.2f)", 'filename', key, xmp.get(key), value, inc)
+                xmp.set(key, value)
 
     def initialize(self):
         last_sidecar = None
 
         self.keyframes = []
         for sidecar in self.sidecars:
+            # White balance and point curves hack
+            sidecar.set('Temperature', 5500)
+            sidecar.set('Tint', 6)
             if last_sidecar:
-                if evChanged(last_sidecar, sidecar):
+                if self._evChanged(last_sidecar, sidecar):
                     last_sidecar.setRating(2)
                     sidecar.setRating(3)
                     self.keyframes.append(self.sidecars.index(last_sidecar))
@@ -89,11 +92,12 @@ class Timelapse:
             last_sidecar = sidecar
         self.sidecars[0].setRating(1)
         self.sidecars[-1].setRating(1)
-        self.keyframes.insert(0, 0)                 # first keyframe
-        self.keyframes.append(len(self.sidecars)-1) # last keyframe
+        self.keyframes.insert(0, 0)                         # first keyframe
+        self.keyframes.append(len(self.sidecars)-1)         # last keyframe
+        self.keyframes = sorted(list(set(self.keyframes)))  # remove duplicates
 
     def process(self):
-        if len(keyframes) < 2:
+        if len(self.keyframes) < 2:
             raise StandardError('Minimum of 2 keyframes required (found %d).  Did you forget to initialize?' % (len(self.keyframes)))
 
         i = iter(self.keyframes)
@@ -106,11 +110,11 @@ class Timelapse:
                 seq = self.sidecars[a:b+1]
                 cnt = len(seq) - 1
 
-                print '%s: Start keyframe, rating = %d' % (self.sidecars[a].filename, self.sidecars[a].getRating())
+#                print '%s: Start keyframe, rating = %d' % (self.sidecars[a].filename, self.sidecars[a].getRating())
 #                logger.info('%s: Start keyframe, rating = %d' % (self.sidecars[a].filename, self.sidecars[a].getRating()))
 
                 # Interpolate top-level CRS settings
-                interpolate(seq, xmptags.CRS_TAGS)
+                self._interpolate(seq, xmptags.CRS_TAGS)
 
                 if not self.ignore_grads:
                     # Interpolate GradientBasedCorrections (& CorrectionMasks)
@@ -127,18 +131,18 @@ class Timelapse:
                             raise StandardError('%s has %d GradientBasedCorrections, expected %d (%s).  Exiting.' % (xmp.filename,
                                                                                                                      n,
                                                                                                                      len(gbcslist),
-                                                                                                                     sidecars[a].filename))
+                                                                                                                     self.sidecars[a].filename))
                         for idx, gbc in enumerate(xmp.GradientBasedCorrections):
                             gbcslist[idx].append(gbc)
                             cmslist[idx].append(gbc.CorrectionMasks[0])
 
                     # Do interpolation
                     for gbcs in gbcslist:
-                        print 'Interpolating GBCs'
-                        interpolate(gbcs, xmptags.CRS_GBC_TAGS)
+#                        print 'Interpolating GBCs'
+                        self._interpolate(gbcs, xmptags.CRS_GBC_TAGS)
                     for cms in cmslist:
-                        print 'Interpolating CMs'
-                        interpolate(cms, xmptags.CRS_GBC_CM_TAGS)
+#                        print 'Interpolating CMs'
+                        self._interpolate(cms, xmptags.CRS_GBC_CM_TAGS)
 
                 if not self.ignore_curves:
                     # Interpolate ToneCurves
@@ -166,11 +170,11 @@ class Timelapse:
 
                     # Do interpolation
                     for color, tc in enumerate(tcslist):
-                        print 'Interpolating TC color', color
+#                        print 'Interpolating TC color', color
                         for tcps in tc:
-                            interpolate(tcps, xmptags.CRS_TC_TAGS)
+                            self._interpolate(tcps, xmptags.CRS_TC_TAGS)
 
-                print '%s: End keyframe, rating = %d' % (self.sidecars[b].filename, self.sidecars[b].getRating())
+#                print '%s: End keyframe, rating = %d' % (self.sidecars[b].filename, self.sidecars[b].getRating())
 #                logger.info('%s: End keyframe, rating = %d' % (sidecars[b].filename, sidecars[b].getRating()))
-        except StopIteration:
+        except StopIteration, e:
             pass
